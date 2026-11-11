@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ব্যাকগ্রাউন্ড রিমুভার</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .card {
+            background: #fff;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 900px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        h1 { text-align: center; color: #333; margin-bottom: 8px; font-size: 28px; }
+        .subtitle { text-align: center; color: #777; margin-bottom: 30px; font-size: 15px; }
+
+        .upload-zone {
+            border: 3px dashed #c5cae9;
+            border-radius: 16px;
+            padding: 50px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #f8f9ff;
+        }
+
+        .upload-zone:hover, .upload-zone.dragover {
+            border-color: #667eea;
+            background: #eef0ff;
+        }
+
+        .upload-zone .icon { font-size: 48px; margin-bottom: 12px; }
+        .upload-zone p { color: #555; font-size: 16px; }
+        .upload-zone small { color: #999; display: block; margin-top: 6px; }
+
+        #fileInput { display: none; }
+
+        .result {
+            display: none;
+            margin-top: 30px;
+        }
+
+        .result.show { display: block; }
+
+        .images {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .image-box {
+            flex: 1;
+            min-width: 260px;
+            text-align: center;
+        }
+
+        .image-box h3 { color: #444; margin-bottom: 10px; font-size: 16px; }
+
+        .image-box .preview {
+            border-radius: 12px;
+            max-width: 100%;
+            max-height: 320px;
+            object-fit: contain;
+            border: 1px solid #eee;
+        }
+
+        .checkerboard {
+            background-image:
+                linear-gradient(45deg, #ddd 25%, transparent 25%),
+                linear-gradient(-45deg, #ddd 25%, transparent 25%),
+                linear-gradient(45deg, transparent 75%, #ddd 75%),
+                linear-gradient(-45deg, transparent 75%, #ddd 75%);
+            background-size: 16px 16px;
+            background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+        }
+
+        .btn {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 14px 36px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            border: none;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(102,126,234,0.4); }
+
+        .status {
+            text-align: center;
+            margin-top: 24px;
+            padding: 14px;
+            border-radius: 10px;
+            display: none;
+            font-size: 15px;
+        }
+
+        .status.loading {
+            display: block;
+            background: #fff8e1;
+            color: #8a6d00;
+        }
+
+        .status.error {
+            display: block;
+            background: #fdecea;
+            color: #b71c1c;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 3px solid rgba(0,0,0,0.15);
+            border-top-color: #8a6d00;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            vertical-align: middle;
+            margin-right: 8px;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>🖼️ ব্যাকগ্রাউন্ড রিমুভার</h1>
+        <p class="subtitle">ইমেজ আপলোড করুন — AI নিজে থেকেই সাবজেক্ট ডিটেক্ট করে ব্যাকগ্রাউন্ড সরিয়ে দেবে</p>
+
+        <div class="upload-zone" id="uploadZone">
+            <div class="icon">📤</div>
+            <p>ইমেজ এখানে ক্লিক করে বা ড্র্যাগ করে আপলোড করুন</p>
+            <small>PNG, JPG, JPEG, WEBP — সর্বোচ্চ ১৬ MB</small>
+        </div>
+        <input type="file" id="fileInput" accept="image/png,image/jpeg,image/webp">
+
+        <div class="status" id="status"></div>
+
+        <div class="result" id="result">
+            <div class="images">
+                <div class="image-box">
+                    <h3>মূল ইমেজ</h3>
+                    <img id="originalPreview" class="preview">
+                </div>
+                <div class="image-box">
+                    <h3>ব্যাকগ্রাউন্ড রিমুভড</h3>
+                    <img id="resultPreview" class="preview checkerboard">
+                </div>
+            </div>
+            <div style="text-align: center;">
+                <a id="downloadBtn" class="btn" download>⬇️ ডাউনলোড করুন (PNG)</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const uploadZone = document.getElementById('uploadZone');
+        const fileInput = document.getElementById('fileInput');
+        const status = document.getElementById('status');
+        const result = document.getElementById('result');
+
+        uploadZone.addEventListener('click', () => fileInput.click());
+
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        });
+
+        uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+        });
+
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length) handleFile(fileInput.files[0]);
+        });
+
+        function showStatus(type, message) {
+            status.className = 'status ' + type;
+            status.innerHTML = type === 'loading' ? '<span class="spinner"></span>' + message : message;
+        }
+
+        async function handleFile(file) {
+            if (!file.type.startsWith('image/')) {
+                showStatus('error', 'শুধু ইমেজ ফাইল আপলোড করুন।');
+                return;
+            }
+
+            result.classList.remove('show');
+            showStatus('loading', 'প্রসেস হচ্ছে... প্রথমবার AI মডেল লোড হতে কয়েক সেকেন্ড লাগতে পারে।');
+
+            const formData = new FormData();
+            formData.append('image', file);
+
+            try {
+                const response = await fetch('/remove-bg', { method: 'POST', body: formData });
+
+                if (!response.ok) {
+                    const data = await response.json().catch(() => ({}));
+                    throw new Error(data.error || 'সার্ভারে সমস্যা হয়েছে।');
+                }
+
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+
+                document.getElementById('originalPreview').src = URL.createObjectURL(file);
+                document.getElementById('resultPreview').src = url;
+                document.getElementById('downloadBtn').href = url;
+                document.getElementById('downloadBtn').download =
+                    file.name.replace(/\.[^.]+$/, '') + '_no_bg.png';
+
+                showStatus('', '');
+                result.classList.add('show');
+            } catch (err) {
+                showStatus('error', err.message);
+            }
+        }
+    </script>
+</body>
+</html>
